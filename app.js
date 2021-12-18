@@ -3,6 +3,7 @@ require('express-async-errors');
 const notFoundMiddleware = require('./middleware/not-found');
 const errorHandlerMiddleware = require('./middleware/error-handler');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 
 const authRouter = require('./routes/authRoutes');
 
@@ -16,6 +17,7 @@ const connectDB = require('./db/connect');
 //middleware
 app.use(morgan('dev'));
 app.use(express.json());
+app.use(cookieParser(process.env.JWT_SECRET));
 
 app.get('/', (req, res) => {
   res.send('GET request to the homepage');

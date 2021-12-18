@@ -2,7 +2,8 @@ const User = require('../models/User');
 const { StatusCodes } = require('http-status-codes');
 const CustomError = require('../errors/index');
 const jwt = require('jsonwebtoken');
-const { createJWT } = require('../utils');
+const { createJWT, attachCookiesToResponse } = require('../utils');
+
 const register = async (req, res) => {
   const { email, name, password, role } = req.body;
 
@@ -16,15 +17,39 @@ const register = async (req, res) => {
   //   const token = jwt.sign(tokenUser, 'jwtSecret', {
   //     expiresIn: '1d',
   //   });
+  attachCookiesToResponse({ res, user: tokenUser });
 
-  const token = createJWT({ payload: tokenUser });
+  // const token = createJWT({ payload: tokenUser });
 
-  res.status(StatusCodes.CREATED).json({ user: tokenUser, token });
+  res.status(StatusCodes.CREATED).json({ user: tokenUser });
 };
 
 const login = async (req, res) => {
-  res.send('Login user');
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    throw new CustomError.BadRequestError('Please provide email and password');
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new CustomError.UnauthenticatedError('Invalid Credentials');
+  }
+
+  const isPasswordCorrect = await user.comparePassword(password);
+
+  if (!isPasswordCorrect) {
+    throw new CustomError.UnauthenticatedError('Invalid Credentials');
+  }
+
+  const tokenUser = { name: user.name, userId: user._id, role: user.role };
+
+  attachCookiesToResponse({ res, user: tokenUser });
+
+  res.status(StatusCodes.OK).json({ user: tokenUser });
 };
+
 const logout = async (req, res) => {
   res.send('Logout user');
 };
